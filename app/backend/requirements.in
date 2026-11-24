@@ -13,6 +13,7 @@ azure-storage-blob
 azure-storage-file-datalake
 uvicorn
 aiohttp
+httpx
 azure-monitor-opentelemetry
 opentelemetry-instrumentation-asgi
 opentelemetry-instrumentation-httpx
@@ -25,6 +26,7 @@ PyJWT
 Pillow
 types-Pillow
 pypdf
+python-docx>=1.2.0,<2
 PyMuPDF
 beautifulsoup4
 types-beautifulsoup4

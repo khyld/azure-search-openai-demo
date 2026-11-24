@@ -46,7 +46,7 @@ var searchIdentityProvider = (sku.name == 'free') ? null : {
   }
 }
 
-resource search 'Microsoft.Search/searchServices@2025-05-01' = {
+resource search 'Microsoft.Search/searchServices@2026-09-01-preview' = {
   name: name
   location: location
   tags: tags
@@ -57,9 +57,9 @@ resource search 'Microsoft.Search/searchServices@2025-05-01' = {
     disableLocalAuth: disableLocalAuth
     encryptionWithCmk: encryptionWithCmk
     hostingMode: hostingMode
-    partitionCount: partitionCount
+    partitionCount: sku.name == 'serverless' ? null : partitionCount
     publicNetworkAccess: publicNetworkAccess
-    replicaCount: replicaCount
+    replicaCount: sku.name == 'serverless' ? null : replicaCount
     semanticSearch: semanticSearch
   }
   sku: sku

@@ -129,6 +129,22 @@ However, if your goal is to minimize costs while prototyping your application, f
 
 1. Once you've made the desired customizations, follow the steps in the README [to run `azd up`](../README.md#deploying-from-scratch). We recommend using "eastus" as the region, for availability reasons.
 
+## Using serverless Search for variable workloads
+
+Azure AI Search Serverless Developer is a paid, consumption-based preview, not a free tier. It charges for compute usage and indexed storage, has no SLA, and is not recommended for production workloads. See [pricing models](https://learn.microsoft.com/azure/search/search-sku-tier) and [supported regions](https://learn.microsoft.com/azure/search/search-region-support) before deploying.
+
+To select serverless Search in a supported region, such as Sweden Central:
+
+```shell
+azd env set AZURE_SEARCH_SERVICE_SKU serverless
+azd env set AZURE_SEARCH_SERVICE_LOCATION swedencentral
+azd provision --preview
+azd provision
+azd deploy
+```
+
+The Search module uses the management preview API and omits replica and partition counts for serverless. Other tiers retain their configured capacity. Existing Search services cannot migrate to or from serverless; use a new service name and re-ingest your documents when changing pricing models. Regional capacity constraints can still prevent creation.
+
 ## Reducing costs locally
 
 To save costs for local development, you could use an OpenAI-compatible model.

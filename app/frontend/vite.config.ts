@@ -41,6 +41,7 @@ export default defineConfig(() => {
             rollupOptions: {
                 input: {
                     main: resolve(__dirname, "index.html"),
+                    documentchat: resolve(__dirname, "documentchat.html"),
                     // Dedicated MSAL popup-redirect page — contains only the bridge script.
                     // See https://github.com/AzureAD/microsoft-authentication-library-for-js/blob/dev/lib/msal-browser/docs/login-user.md#redirecturi-considerations
                     redirect: resolve(__dirname, "redirect.html")
@@ -68,6 +69,7 @@ export default defineConfig(() => {
         server: {
             proxy: {
                 "/content/": backendUrl,
+                "/api/": backendUrl,
                 "/auth_setup": backendUrl,
                 "/.auth/me": backendUrl,
                 "/chat": backendUrl,

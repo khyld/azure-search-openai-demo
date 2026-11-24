@@ -206,19 +206,21 @@ def test_extract_followup_questions_no_pre_content(chat_approach):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "minimum_search_score,minimum_reranker_score,expected_result_count",
+    "use_semantic_ranker,minimum_search_score,minimum_reranker_score,expected_result_count",
     [
-        (0, 0, 1),
-        (0, 2, 1),
-        (0.03, 0, 1),
-        (0.03, 2, 1),
-        (1, 0, 0),
-        (0, 4, 0),
-        (1, 4, 0),
+        (True, 0, 0, 1),
+        (True, 0, 2, 1),
+        (True, 0.03, 0, 1),
+        (True, 0.03, 2, 1),
+        (True, 1, 0, 0),
+        (True, 0, 4, 0),
+        (True, 1, 4, 0),
+        (False, 0, 4, 1),
+        (False, 1, 4, 0),
     ],
 )
 async def test_search_results_filtering_by_scores(
-    chat_approach, monkeypatch, minimum_search_score, minimum_reranker_score, expected_result_count
+    chat_approach, monkeypatch, use_semantic_ranker, minimum_search_score, minimum_reranker_score, expected_result_count
 ):
     monkeypatch.setattr(SearchClient, "search", mock_search)
 
@@ -229,7 +231,7 @@ async def test_search_results_filtering_by_scores(
         vectors=[],
         use_text_search=True,
         use_vector_search=True,
-        use_semantic_ranker=True,
+        use_semantic_ranker=use_semantic_ranker,
         use_semantic_captions=True,
         minimum_search_score=minimum_search_score,
         minimum_reranker_score=minimum_reranker_score,
