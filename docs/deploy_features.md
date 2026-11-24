@@ -222,7 +222,10 @@ Convert them first to PDF or image formats to enable media description.
 
 ## Enabling cloud data ingestion
 
-By default, this project runs a local script in order to ingest data. Once you move beyond the sample documents, you may want to enable [cloud ingestion](./data_ingestion.md#cloud-ingestion), which uses Azure AI Search indexers and custom Azure AI Search skills based off the same code used by the local ingestion. That approach scales better to larger amounts of data.
+By default, this project runs a local script in order to ingest data. Once you move beyond the sample documents, you may want to enable [cloud ingestion](./data_ingestion.md#cloud-ingestion), which uses Azure AI Search indexers and scales better to larger amounts of data. There are two options for the skills that the indexer runs:
+
+* **Custom skills (default):** Azure Functions run custom Azure AI Search skills based off the same code used by the local ingestion, with Azure Document Intelligence for extraction. Enable with `azd env set USE_CLOUD_INGESTION true`.
+* **[Built-in skills](./data_ingestion.md#using-built-in-skills-instead-of-azure-functions):** Only built-in Azure AI Search skills are used, so no Azure Functions are deployed. Azure Content Understanding handles extraction and chunking. Multimodal isn't supported yet. Enable with `azd env set USE_CLOUD_INGESTION true` and `azd env set USE_CLOUD_INGESTION_BUILTIN true`.
 
 Learn more in the [cloud ingestion guide](./data_ingestion.md#cloud-ingestion).
 
@@ -315,6 +318,8 @@ You can enable an optional user document upload system to allow users to upload 
 Then you'll need to run `azd up` to provision an Azure Data Lake Storage Gen2 account for storing the user-uploaded documents.
 When the user uploads a document, it will be stored in a directory in that account with the same name as the user's Entra object id,
 and will have ACLs associated with that directory. When the ingester runs, it will also set the `oids` of the indexed chunks to the user's Entra object id. Whenever any content is retrieved or added to the directory, the "owner" property will be checked to ensure that the user is the owner of the directory, and thus has access to the content.
+
+Upload and delete requests must use a non-empty, literal file name, not a path. Path separators (`/` or `\`), dot segments (`.` or `..`), control characters, and percent-encoded characters are rejected with HTTP 400 before storage or indexing operations. Valid names, including spaces, apostrophes, and Unicode characters, are preserved rather than rewritten.
 
 If you are enabling this feature on an existing index, you should also update your index to have the new `storageUrl` field:
 

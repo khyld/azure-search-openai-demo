@@ -236,6 +236,9 @@
     "useCloudIngestion": {
       "value": "${USE_CLOUD_INGESTION=false}"
     },
+    "useCloudIngestionBuiltin": {
+      "value": "${USE_CLOUD_INGESTION_BUILTIN=false}"
+    },
     "useCloudIngestionAcls": {
       "value": "${USE_CLOUD_INGESTION_ACLS=false}"
     },
@@ -340,9 +343,6 @@
     },
     "bypass": {
       "value": "${AZURE_NETWORK_BYPASS=AzureServices}"
-    },
-    "useIntegratedVectorization": {
-      "value": "${USE_FEATURE_INT_VECTORIZATION}"
     },
     "useUserUpload": {
       "value": "${USE_USER_UPLOAD}"

@@ -227,6 +227,8 @@ The sample supports 2 main strategies for adding data with document level access
 - [Using cloud ingestion with Azure Data Lake Storage Gen2](#cloud-ingestion-with-azure-data-lake-storage-gen2) (Recommended). Uses Azure Functions and an Azure AI Search indexer to automatically extract ACLs from files stored in Azure Data Lake Storage Gen2 and index them with document-level access control.
 - [Using the Add Documents API](#using-the-add-documents-api). Sample scripts are provided which use the Azure AI Search Service Add Documents API to directly manage access control information on _existing documents_ in the index.
 
+To index documents from SharePoint with their SharePoint permissions, use cloud ingestion with built-in skills. See [SharePoint access control](data_ingestion.md#sharepoint-access-control).
+
 > [!NOTE]
 > The previous "ADLS local file strategy" (using `prepdocs` directly against Azure Data Lake Storage) has been deprecated and removed. If you were using that approach in earlier versions of this sample, you must migrate to the cloud ingestion flow described in [Cloud ingestion with Azure Data Lake Storage Gen2](#cloud-ingestion-with-azure-data-lake-storage-gen2), which runs ingestion in Azure Functions and the Azure AI Search indexer instead of on the client machine.
 
@@ -255,6 +257,18 @@ The document extractor parses the POSIX-style ACL string from ADLS Gen2 (e.g., `
 
 > **Note:** The document extractor only reads ACLs directly from each file - it does not consider directory-level ACL inheritance or propagation. If a user or group has read permission on the file's ACL, they will be granted access to that document in Azure AI Search. Make sure ACLs are set explicitly on each file, not just on parent directories.
 
+#### Using built-in skills for ACL ingestion
+
+If you also set `USE_CLOUD_INGESTION_BUILTIN=true` (see [Using built-in skills instead of Azure Functions](data_ingestion.md#using-built-in-skills-instead-of-azure-functions)), the document extractor isn't used. Instead, the search indexer reads permissions itself with [ADLS Gen2 permission ingestion](https://learn.microsoft.com/azure/search/search-indexer-access-control-lists-and-role-based-access) (preview), and copies the user and group IDs onto every chunk. Permission ingestion requires a `metadata_storage_path` field in the index, so the setup script adds one if it's missing.
+
+A misconfigured pipeline still indexes documents, just without permissions, so the setup script checks for that. After configuring the indexer, it confirms that the data source and index are set up for permission ingestion, and fails if they aren't. After each indexer run, it reports any chunks that have no `oids` or `groups`, and any chunks from files without named user or group ACL entries. The indexer sets both fields to `["none"]` for those files, so no user can access them until you add ACL entries and reindex. When `AZURE_ENFORCE_ACCESS_CONTROL` is enabled, that check uses [elevated read](https://learn.microsoft.com/azure/search/search-query-access-control-rbac-enforcement#elevated-permissions-for-investigating-incorrect-results-preview), which requires the Search Index Data Contributor role that `azd up` assigns to you.
+
+Native permission ingestion computes effective access, so it accounts for the ACL mask and for permissions on parent directories. It differs from the document extractor in a few ways:
+
+- Changing only a file's ACL doesn't change its last-modified time, so a normal indexer run doesn't pick up the change. [Resync the permissions](https://learn.microsoft.com/azure/search/search-indexer-access-control-lists-and-role-based-access#synchronize-permissions-between-indexed-and-source-content) after changing ACLs.
+- `AZURE_ENABLE_GLOBAL_DOCUMENT_ACCESS` isn't applied: the "other" ACL entry isn't converted to `["all"]`. Review the [limitations](https://learn.microsoft.com/azure/search/search-indexer-access-control-lists-and-role-based-access#limitations) for owning user, owning group, and "other" entries.
+- Multimodal isn't available, because permission ingestion can't be combined with the knowledge store or custom skills.
+
 #### Setup
 
 1. **Enable cloud ingestion and ACLs**
@@ -280,12 +294,12 @@ The document extractor parses the POSIX-style ACL string from ADLS Gen2 (e.g., `
 
 4. **Upload documents with ACLs**
 
-   Upload documents to the provisioned ADLS storage account (`AZURE_ADLS_STORAGE_ACCOUNT`) and set ACLs on them.
+   Upload documents to the `AZURE_STORAGE_CONTAINER` container (`content` by default) in the ADLS storage account (`AZURE_ADLS_STORAGE_ACCOUNT`), since that's the container the indexer reads from, and set ACLs on them.
 
    You can use the [adlsgen2setup.py](/scripts/adlsgen2setup.py) script to upload sample data with ACLs:
 
    ```shell
-   python scripts/adlsgen2setup.py './data/*' --data-access-control './scripts/sampleacls.json' -v
+   python scripts/adlsgen2setup.py ./data --data-access-control './scripts/sampleacls.json' -v
    ```
 
    Alternatively, use [Azure Storage Explorer](https://azure.microsoft.com/products/storage/storage-explorer/) or the Azure portal to upload files and manage ACLs.
@@ -470,7 +484,6 @@ The following environment variables are used to setup the optional login and doc
 - `USE_EXISTING_ADLS_STORAGE`: (Optional) Set to `true` to use an existing ADLS Gen2 storage account instead of provisioning a new one. Used with [cloud ingestion](#using-your-own-adls-gen2-storage-account).
 - `AZURE_ADLS_GEN2_STORAGE_ACCOUNT`: (Optional) Name of existing [Data Lake Storage Gen2 storage account](https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-introduction) for storing sample data with [access control lists](https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-access-control). Required when `USE_EXISTING_ADLS_STORAGE` is `true`. Used with [cloud ingestion](#cloud-ingestion-with-azure-data-lake-storage-gen2).
 - `AZURE_ADLS_GEN2_STORAGE_RESOURCE_GROUP`: (Optional) Resource group containing the existing ADLS Gen2 storage account. Defaults to the main resource group if not specified. Used with [cloud ingestion](#using-your-own-adls-gen2-storage-account).
-- `AZURE_ADLS_GEN2_FILESYSTEM`: (Optional) Name of existing [Data Lake Storage Gen2 filesystem](https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-introduction) for storing sample data with [access control lists](https://learn.microsoft.com/azure/storage/blobs/data-lake-storage-access-control). Used with [cloud ingestion](#cloud-ingestion-with-azure-data-lake-storage-gen2).
 
 ### Authentication behavior by environment
 
